@@ -1,0 +1,37 @@
+[Unit]
+Description=Crypto Warrior API - FastAPI backend with Gunicorn
+After=network.target
+
+[Service]
+Type=notify
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/cryptoWarrior/backend
+Environment="PATH=/home/ubuntu/cryptoWarrior/backend/venv/bin"
+Environment="PYTHONPATH=/home/ubuntu/cryptoWarrior/backend"
+
+# Load environment variables from .env file
+EnvironmentFile=/home/ubuntu/cryptoWarrior/backend/.env
+
+# Gunicorn configuration
+ExecStart=/home/ubuntu/cryptoWarrior/backend/venv/bin/gunicorn main:app -c gunicorn_config.py
+
+# Restart configuration
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits (adjust based on your EC2 instance)
+LimitNOFILE=65536
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto-warrior-api
+
+[Install]
+WantedBy=multi-user.target
+

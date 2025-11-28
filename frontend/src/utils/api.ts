@@ -1,11 +1,12 @@
 import { Coin, PricePoint, BattleData, Profile } from '@/types';
+import { API_BASE_URL } from './constants';
 
 // Mock API functions - will be replaced with real API calls later
 
 export const getTop30Coins = async (): Promise<Coin[]> => {
   try {
     // Fetch top tradeable coins from Binance (all are guaranteed to be tradeable)
-    const response = await fetch('http://localhost:8000/api/coins/top?limit=30');
+    const response = await fetch(`${API_BASE_URL}/api/coins/top?limit=30`);
     if (!response.ok) {
       throw new Error('Failed to fetch coins');
     }
@@ -58,7 +59,7 @@ export const startBattle = async (userCoin: string): Promise<{ botCoin: string }
 
 export const getCoinMapping = async (): Promise<Record<string, string>> => {
   try {
-    const response = await fetch('http://localhost:8000/api/coins/mapping');
+    const response = await fetch(`${API_BASE_URL}/api/coins/mapping`);
     if (!response.ok) {
       throw new Error('Failed to fetch mapping');
     }
@@ -79,7 +80,7 @@ export const getLivePrice = async (binanceSymbol: string): Promise<PricePoint> =
 
     // Fetch real price from Binance via backend
     console.log(`💹 Fetching price for ${binanceSymbol}`);
-    const response = await fetch(`http://localhost:8000/api/price/${binanceSymbol}`);
+    const response = await fetch(`${API_BASE_URL}/api/price/${binanceSymbol}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch price: ${response.statusText}`);
     }

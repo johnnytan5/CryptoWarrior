@@ -37,8 +37,11 @@ export default function ChartComponent({
     };
   });
 
-  const userChange = chartData[chartData.length - 1]?.[`${userCrypto}%`] || 0;
-  const botChange = chartData[chartData.length - 1]?.[`${botCrypto}%`] || 0;
+  const latestPoint = chartData[chartData.length - 1];
+  const userChangeRaw = latestPoint?.[`${userCrypto}%`];
+  const botChangeRaw = latestPoint?.[`${botCrypto}%`];
+  const userChange = typeof userChangeRaw === 'number' ? userChangeRaw : Number(userChangeRaw ?? 0);
+  const botChange = typeof botChangeRaw === 'number' ? botChangeRaw : Number(botChangeRaw ?? 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

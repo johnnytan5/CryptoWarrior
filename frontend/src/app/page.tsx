@@ -13,6 +13,17 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { startBattle, getTop30Coins } from '@/utils/api';
 import { Coin } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '@/utils/constants';
+
+type UserCoin = {
+  object_id: string;
+  balance: number;
+};
+
+type UserBalanceData = {
+  total_balance: number;
+  coins: UserCoin[];
+};
 
 // Configuration (same as test-battle page)
 const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID || '0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8';
@@ -109,11 +120,11 @@ export default function Home() {
       const stakeAmount = Math.floor(wagerAmount * 1_000_000_000);
 
       // Step 1: Get user's coin objects
-      const balanceResponse = await fetch(`http://localhost:8000/api/users/${currentAccount.address}/balance`);
+      const balanceResponse = await fetch(`${API_BASE_URL}/api/users/${currentAccount.address}/balance`);
       if (!balanceResponse.ok) {
         throw new Error('Failed to fetch balance');
       }
-      const balanceData = await balanceResponse.json();
+      const balanceData: UserBalanceData = await balanceResponse.json();
       
       // Check total balance
       if (balanceData.total_balance < stakeAmount) {
@@ -128,7 +139,7 @@ export default function Home() {
       const tx = new Transaction();
       
       // Find a coin with sufficient balance
-      let coinToUse = balanceData.coins.find((coin: any) => coin.balance >= stakeAmount);
+      let coinToUse = balanceData.coins.find((coin) => coin.balance >= stakeAmount);
       
       let stakeCoin;
       
@@ -142,7 +153,7 @@ export default function Home() {
           // After merge, firstCoin will have total_balance
           tx.mergeCoins(
             tx.object(firstCoin.object_id),
-            otherCoins.map(coin => tx.object(coin.object_id))
+            otherCoins.map((coin) => tx.object(coin.object_id))
           );
         }
         
@@ -213,7 +224,7 @@ export default function Home() {
 
                 // Step 4: Computer joins battle (backend handles this)
                 try {
-                  const joinResponse = await fetch('http://localhost:8000/api/battles/join', {
+                  const joinResponse = await fetch(`${API_BASE_URL}/api/battles/join`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -341,7 +352,7 @@ export default function Home() {
 
     try {
       // Finalize battle on-chain via backend
-      const response = await fetch('http://localhost:8000/api/battles/finalize', {
+      const response = await fetch(`${API_BASE_URL}/api/battles/finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

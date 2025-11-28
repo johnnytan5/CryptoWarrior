@@ -50,6 +50,8 @@ one keytool export --key-identity 0xf243e79908bd2a90e54a4121a5f65f225b894316f19a
 
 ### 4. Run the Server
 
+#### Development Mode
+
 ```bash
 # Development mode (with auto-reload)
 python main.py
@@ -59,6 +61,25 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Server will start at: **http://localhost:8000**
+
+#### Production Mode (Gunicorn)
+
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run with Gunicorn (production)
+gunicorn main:app -c gunicorn_config.py
+
+# Or specify custom settings
+gunicorn main:app \
+  --workers 5 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000 \
+  --timeout 30
+```
+
+**Note:** For production deployment on EC2, see the [Production Deployment](#-production-deployment) section below.
 
 ## 📡 API Endpoints
 
@@ -355,6 +376,224 @@ flake8 .
 - [ ] Implement event subscriptions
 - [ ] Add monitoring and metrics
 
+## 🚀 Production Deployment
+
+### EC2 Deployment with Gunicorn
+
+#### 1. Prerequisites
+
+- EC2 instance running Ubuntu (20.04 or later recommended)
+- Python 3.11+ installed
+- Domain name configured (optional, for SSL)
+- Security group configured to allow HTTP (80) and HTTPS (443)
+
+#### 2. Initial Setup
+
+```bash
+# Clone or upload your code to EC2
+cd ~/cryptoWarrior/backend
+
+# Run deployment script
+chmod +x deploy.sh
+./deploy.sh
+```
+
+#### 3. Configure Environment Variables
+
+Create/update `.env` file with production values:
+
+```env
+# OneChain Configuration
+ONECHAIN_NETWORK=testnet
+ONECHAIN_RPC_URL=https://rpc-testnet.onelabs.cc:443
+
+# Smart Contract Addresses
+PACKAGE_ID=0x...
+MINT_CAP_ID=0x...
+ADMIN_CAP_ID=0x...
+
+# Admin Wallet
+ADMIN_PRIVATE_KEY=your_base64_encoded_private_key
+DEPLOYER_ADDRESS=0x...
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+DEBUG=False
+
+# CORS - Add your Vercel domain here
+CORS_ORIGINS=http://localhost:3000,https://your-app.vercel.app
+```
+
+#### 4. Install Systemd Service
+
+```bash
+# Copy service file
+sudo cp crypto-warrior-api.service /etc/systemd/system/
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Start the service
+sudo systemctl start crypto-warrior-api
+
+# Enable auto-start on boot
+sudo systemctl enable crypto-warrior-api
+
+# Check status
+sudo systemctl status crypto-warrior-api
+```
+
+#### 5. View Logs
+
+```bash
+# View live logs
+sudo journalctl -u crypto-warrior-api -f
+
+# View recent logs
+sudo journalctl -u crypto-warrior-api -n 100
+
+# View logs since boot
+sudo journalctl -u crypto-warrior-api --since boot
+```
+
+#### 6. Nginx Configuration (Reverse Proxy + SSL)
+
+Create `/etc/nginx/sites-available/crypto-warrior-api`:
+
+```nginx
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+
+    # SSL certificates (use Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Proxy settings
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket support (if needed)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/crypto-warrior-api /etc/nginx/sites-enabled/
+sudo nginx -t  # Test configuration
+sudo systemctl reload nginx
+```
+
+#### 7. SSL Certificate (Let's Encrypt)
+
+```bash
+# Install certbot
+sudo apt-get update
+sudo apt-get install certbot python3-certbot-nginx
+
+# Get certificate
+sudo certbot --nginx -d api.yourdomain.com
+
+# Auto-renewal (already configured by certbot)
+sudo certbot renew --dry-run
+```
+
+#### 8. Gunicorn Configuration
+
+The `gunicorn_config.py` file is pre-configured with production settings:
+
+- **Workers**: Automatically calculated as `(2 × CPU cores) + 1`
+- **Timeout**: 30 seconds
+- **Max requests**: 1000 (prevents memory leaks)
+- **Preload app**: Enabled for better performance
+
+You can override settings with environment variables:
+
+```bash
+export GUNICORN_WORKERS=5
+export GUNICORN_LOG_LEVEL=debug
+export GUNICORN_MAX_REQUESTS=500
+```
+
+#### 9. Monitoring
+
+```bash
+# Check service status
+sudo systemctl status crypto-warrior-api
+
+# Check if Gunicorn is running
+ps aux | grep gunicorn
+
+# Check port binding
+sudo netstat -tlnp | grep 8000
+
+# Test API endpoint
+curl http://localhost:8000/health
+```
+
+#### 10. Updating the Service
+
+```bash
+# Pull latest code
+cd ~/cryptoWarrior/backend
+git pull  # or upload new files
+
+# Run deployment script
+./deploy.sh
+
+# Restart service
+sudo systemctl restart crypto-warrior-api
+
+# Check if restart was successful
+sudo systemctl status crypto-warrior-api
+```
+
+### Performance Tuning
+
+#### Worker Count
+
+For EC2 instances:
+- **t3.small** (2 vCPU): 5 workers (default)
+- **t3.medium** (2 vCPU): 5 workers
+- **t3.large** (2 vCPU): 5 workers
+- **t3.xlarge** (4 vCPU): 9 workers
+
+Adjust in `gunicorn_config.py` or via environment variable:
+```bash
+export GUNICORN_WORKERS=9
+```
+
+#### Memory Management
+
+Workers automatically restart after 1000 requests (configurable) to prevent memory leaks.
+
 ## 🆘 Troubleshooting
 
 ### Issue: "Failed to load admin keypair"
@@ -369,6 +608,23 @@ flake8 .
 - Check if admin has enough OCT for gas
 - Verify object IDs are correct
 - Check transaction logs
+
+### Issue: "Service won't start"
+- Check logs: `sudo journalctl -u crypto-warrior-api -n 50`
+- Verify `.env` file exists and has all required variables
+- Check file permissions: `ls -la .env`
+- Verify virtual environment: `source venv/bin/activate && which python`
+
+### Issue: "Gunicorn workers keep restarting"
+- Check worker logs for errors
+- Verify memory usage: `free -h`
+- Check if external APIs (Binance, CoinGecko) are reachable
+- Review timeout settings in `gunicorn_config.py`
+
+### Issue: "502 Bad Gateway" (Nginx)
+- Check if Gunicorn is running: `sudo systemctl status crypto-warrior-api`
+- Verify Gunicorn is listening on port 8000: `sudo netstat -tlnp | grep 8000`
+- Check Nginx error logs: `sudo tail -f /var/log/nginx/error.log`
 
 ---
 

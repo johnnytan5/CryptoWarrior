@@ -1,7 +1,13 @@
 import { Coin } from '@/types';
 
+type SimpleCoin = Pick<Coin, 'symbol' | 'name'>;
+
+// API Configuration
+// Use environment variable in production, fallback to localhost for development
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 // Top 30 cryptocurrencies
-export const TOP_30_COINS: Coin[] = [
+export const TOP_30_COINS: SimpleCoin[] = [
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
   { symbol: 'BNB', name: 'BNB' },

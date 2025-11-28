@@ -7,10 +7,21 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import confetti from 'canvas-confetti';
+import { API_BASE_URL } from '@/utils/constants';
+
+type UserCoin = {
+  object_id: string;
+  balance: number;
+};
+
+type UserBalanceData = {
+  total_balance: number;
+  coins: UserCoin[];
+};
 
 // Configuration (in production, these would come from environment variables)
-const PACKAGE_ID = '0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8';
-const COMPUTER_ADDRESS = '0xf243e79908bd2a90e54a4121a5f65f225b894316f19a73c68620ebe190c855e9';
+const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID || '0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8';
+const COMPUTER_ADDRESS = process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS || '0xf243e79908bd2a90e54a4121a5f65f225b894316f19a73c68620ebe190c855e9';
 
 interface BattleState {
   battleId: string;
@@ -76,11 +87,11 @@ export default function TestBattlePage() {
       const stakeAmount = Math.floor(betAmountNum * 1_000_000_000);
 
       // Step 1: Get user's coin objects
-      const balanceResponse = await fetch(`http://localhost:8000/api/users/${currentAccount.address}/balance`);
+      const balanceResponse = await fetch(`${API_BASE_URL}/api/users/${currentAccount.address}/balance`);
       if (!balanceResponse.ok) {
         throw new Error('Failed to fetch balance');
       }
-      const balanceData = await balanceResponse.json();
+      const balanceData: UserBalanceData = await balanceResponse.json();
       
       // Check total balance
       if (balanceData.total_balance < stakeAmount) {
@@ -95,7 +106,7 @@ export default function TestBattlePage() {
       const tx = new Transaction();
       
       // Find a coin with sufficient balance
-      let coinToUse = balanceData.coins.find((coin: any) => coin.balance >= stakeAmount);
+      let coinToUse = balanceData.coins.find((coin) => coin.balance >= stakeAmount);
       
       let stakeCoin;
       
@@ -109,7 +120,7 @@ export default function TestBattlePage() {
           // After merge, firstCoin will have total_balance
           tx.mergeCoins(
             tx.object(firstCoin.object_id),
-            otherCoins.map(coin => tx.object(coin.object_id))
+            otherCoins.map((coin) => tx.object(coin.object_id))
           );
         }
         
@@ -173,7 +184,7 @@ export default function TestBattlePage() {
 
             // Step 4: Computer joins battle (backend handles this)
             try {
-              const joinResponse = await fetch('http://localhost:8000/api/battles/join', {
+              const joinResponse = await fetch(`${API_BASE_URL}/api/battles/join`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -225,7 +236,7 @@ export default function TestBattlePage() {
     try {
       const winnerAddress = selectedWinner === 'user' ? currentAccount.address : COMPUTER_ADDRESS;
 
-      const response = await fetch('http://localhost:8000/api/battles/finalize', {
+      const response = await fetch(`${API_BASE_URL}/api/battles/finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
