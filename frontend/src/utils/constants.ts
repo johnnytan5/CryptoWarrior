@@ -1,0 +1,36 @@
+import { Coin } from '@/types';
+
+// Top 30 cryptocurrencies
+export const TOP_30_COINS: Coin[] = [
+  { symbol: 'BTC', name: 'Bitcoin' },
+  { symbol: 'ETH', name: 'Ethereum' },
+  { symbol: 'BNB', name: 'BNB' },
+  { symbol: 'SOL', name: 'Solana' },
+  { symbol: 'XRP', name: 'XRP' },
+  { symbol: 'USDT', name: 'Tether' },
+  { symbol: 'USDC', name: 'USD Coin' },
+  { symbol: 'DOGE', name: 'Dogecoin' },
+  { symbol: 'ADA', name: 'Cardano' },
+  { symbol: 'TRX', name: 'TRON' },
+  { symbol: 'AVAX', name: 'Avalanche' },
+  { symbol: 'SHIB', name: 'Shiba Inu' },
+  { symbol: 'MATIC', name: 'Polygon' },
+  { symbol: 'LINK', name: 'Chainlink' },
+  { symbol: 'DOT', name: 'Polkadot' },
+  { symbol: 'UNI', name: 'Uniswap' },
+  { symbol: 'LTC', name: 'Litecoin' },
+  { symbol: 'ATOM', name: 'Cosmos' },
+  { symbol: 'ETC', name: 'Ethereum Classic' },
+  { symbol: 'XLM', name: 'Stellar' },
+  { symbol: 'NEAR', name: 'NEAR Protocol' },
+  { symbol: 'ALGO', name: 'Algorand' },
+  { symbol: 'VET', name: 'VeChain' },
+  { symbol: 'ICP', name: 'Internet Computer' },
+  { symbol: 'APT', name: 'Aptos' },
+  { symbol: 'FIL', name: 'Filecoin' },
+  { symbol: 'HBAR', name: 'Hedera' },
+  { symbol: 'ARB', name: 'Arbitrum' },
+  { symbol: 'OP', name: 'Optimism' },
+  { symbol: 'INJ', name: 'Injective' },
+];
+
