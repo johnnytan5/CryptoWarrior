@@ -37,27 +37,11 @@ app.add_middleware(
 
 # === Request/Response Models ===
 
-class MintTokensRequest(BaseModel):
-    """Request model for minting tokens."""
-    address: str = Field(..., description="Recipient's Sui address")
-    amount: int = Field(..., gt=0, description="Amount of tokens to mint")
-
-
-class MintTokensResponse(BaseModel):
-    """Response model for minting tokens."""
-    success: bool
-    recipient: str
-    amount: int
-    message: str
-    transaction_digest: Optional[str] = None
-
 
 class CreateBattleRequest(BaseModel):
-    """Request model for creating a battle."""
-    player1_address: str = Field(..., description="Player 1's Sui address")
-    stake_amount: int = Field(..., gt=0, description="Amount to stake")
-    opponent_address: Optional[str] = Field(None, description="Opponent's address (optional for now)")
-    coin_object_id: Optional[str] = Field(None, description="Optional coin object ID (auto-selected if not provided)")
+    """Request model for creating a battle with a signed transaction."""
+    transaction_bytes: str = Field(..., description="Base64-encoded transaction bytes")
+    signature: str = Field(..., description="Base64-encoded signature from user's wallet")
 
 
 class CreateBattleResponse(BaseModel):
@@ -68,6 +52,7 @@ class CreateBattleResponse(BaseModel):
     stake_amount: int
     message: str
     transaction_digest: Optional[str] = None
+    raw_effects: Optional[str] = None  # Base64-encoded raw effects for wallet reporting
 
 
 class JoinBattleRequest(BaseModel):
@@ -388,56 +373,24 @@ async def get_coin_mapping():
         )
 
 
-@app.post("/api/tokens/mint", response_model=MintTokensResponse)
-async def mint_tokens(request: MintTokensRequest):
-    """
-    Mint battle tokens to a user's address.
-    
-    This endpoint is called when:
-    - A new user connects their wallet
-    - User needs more tokens for battles
-    - Admin wants to airdrop tokens
-    """
-    try:
-        logger.info(f"Minting {request.amount} tokens to {request.address}")
-        
-        result = onechain_client.mint_tokens(
-            recipient=request.address,
-            amount=request.amount
-        )
-        
-        return MintTokensResponse(
-            success=result["success"],
-            recipient=result["recipient"],
-            amount=result["amount"],
-            message=result["message"],
-        )
-        
-    except Exception as e:
-        logger.error(f"Mint tokens error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to mint tokens: {str(e)}"
-        )
-
-
 @app.post("/api/battles/create", response_model=CreateBattleResponse)
 async def create_battle(request: CreateBattleRequest):
     """
-    Create a new battle.
+    Execute a signed create_battle transaction from the frontend.
     
-    This endpoint is called when:
-    - Player 1 wants to start a new battle
-    - They stake their tokens to create the battle
+    The frontend builds and signs the transaction, then sends it here for execution.
+    This allows the backend to validate and track all transactions.
+    
+    Request:
+    - transaction_bytes: Base64-encoded transaction bytes
+    - signature: Base64-encoded signature from user's wallet
     """
     try:
-        logger.info(f"Creating battle: {request.stake_amount} tokens from {request.player1_address}")
+        logger.info("Executing signed create_battle transaction from frontend")
         
         result = onechain_client.create_battle(
-            player1_address=request.player1_address,
-            stake_amount=request.stake_amount,
-            coin_object_id=request.coin_object_id,
-            opponent_address=request.opponent_address
+            transaction_bytes=request.transaction_bytes,
+            signature=request.signature
         )
         
         return CreateBattleResponse(
@@ -446,6 +399,8 @@ async def create_battle(request: CreateBattleRequest):
             player1=result["player1"],
             stake_amount=result["stake_amount"],
             message=result["message"],
+            transaction_digest=result.get("transaction_digest"),
+            raw_effects=result.get("raw_effects")
         )
         
     except Exception as e:
@@ -585,11 +540,11 @@ async def get_battle(battle_id: str):
 @app.get("/api/users/{address}/balance", response_model=UserBalanceResponse)
 async def get_user_balance(address: str):
     """
-    Get user's battle token balance.
+    Get user's OCT (native OneChain token) balance.
     
     Used by frontend to:
-    - Display user's token balance
-    - Check if user has enough tokens for battle
+    - Display user's OCT balance
+    - Check if user has enough OCT for battle
     """
     try:
         logger.info(f"Getting balance for {address}")

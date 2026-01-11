@@ -37,7 +37,7 @@ export default function ProfilePage() {
 
   const handleMintNFT = async () => {
     if (battleTokenBalance < 1000) {
-      alert('You need at least 1000.00 BTK to mint an NFT!');
+      alert('You need at least 1000.00 OCT to mint an NFT!');
       return;
     }
 
@@ -133,13 +133,13 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Battle Tokens */}
+            {/* OCT Balance */}
             <div className="mb-8 p-6 bg-gradient-to-br from-neon-green/5 to-neon-cyan/5 border border-neon-green/20 rounded-xl">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-xs text-gray-400 mb-2 tracking-wide">Battle Tokens</div>
+                  <div className="text-xs text-gray-400 mb-2 tracking-wide">OCT Balance</div>
                   <div className="text-3xl font-light text-neon-green tabular-nums">
-                    {battleTokenBalance.toFixed(2)} BTK
+                    {battleTokenBalance.toFixed(2)} OCT
                   </div>
                 </div>
               </div>
@@ -173,12 +173,12 @@ export default function ProfilePage() {
                       <span>Minting NFT...</span>
                     </span>
                   ) : (
-                    'Mint Cat Warrior NFT (1000 tokens)'
+                    'Mint Cat Warrior NFT (1000 OCT)'
                   )}
                 </motion.button>
                 {battleTokenBalance < 1000 && (
                   <p className="text-xs text-gray-400 mt-3 text-center">
-                    Need {(1000 - battleTokenBalance).toFixed(2)} BTK more to mint an NFT
+                    Need {(1000 - battleTokenBalance).toFixed(2)} OCT more to mint an NFT
                   </p>
                 )}
                 {mintSuccess && (

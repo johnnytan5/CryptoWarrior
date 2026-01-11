@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@onelabs/dapp-kit';
+import { useCurrentAccount, useSignTransaction, useSuiClient } from '@onelabs/dapp-kit';
 import { Transaction } from '@onelabs/sui/transactions';
 import { useApp } from '@/context/AppContext';
 import WarriorSelector from '@/components/battle/WarriorSelector';
@@ -43,19 +43,8 @@ export default function Home() {
     refreshBalance,
   } = useApp();
 
-  // Use custom execute function to get object changes
-  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction({
-    execute: async ({ bytes, signature }) =>
-      await client.executeTransactionBlock({
-        transactionBlock: bytes,
-        signature,
-        options: {
-          showRawEffects: true,
-          showObjectChanges: true,
-          showEffects: true,
-        },
-      }),
-  });
+  // Sign transaction (but don't execute - backend will execute)
+  const { mutateAsync: signTransactionAsync } = useSignTransaction();
 
   const [isBattleActive, setIsBattleActive] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -99,7 +88,7 @@ export default function Home() {
     }
 
     if (wagerAmount > battleTokenBalance) {
-      alert('Insufficient battle tokens!');
+      alert('Insufficient OCT!');
       return;
     }
 
@@ -116,7 +105,7 @@ export default function Home() {
       // Small delay to ensure wallet extension is ready
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Convert BTK to raw units (9 decimals)
+      // Convert OCT to raw units (9 decimals)
       const stakeAmount = Math.floor(wagerAmount * 1_000_000_000);
 
       // Step 1: Get user's coin objects
@@ -128,11 +117,11 @@ export default function Home() {
       
       // Check total balance
       if (balanceData.total_balance < stakeAmount) {
-        throw new Error(`Insufficient balance. Required: ${wagerAmount} BTK, Available: ${balanceData.total_balance / 1_000_000_000} BTK`);
+        throw new Error(`Insufficient balance. Required: ${wagerAmount} OCT, Available: ${balanceData.total_balance / 1_000_000_000} OCT`);
       }
       
       if (balanceData.coins.length === 0) {
-        throw new Error('No coins found. Please mint some battle tokens first.');
+        throw new Error('No OCT coins found. Please obtain OCT from the faucet first.');
       }
       
       // Step 2: Build transaction for creating battle
@@ -144,40 +133,77 @@ export default function Home() {
       let stakeCoin;
       
       if (!coinToUse) {
-        // No single coin has enough - merge all coins into the first one
+        // No single coin has enough - merge coins, but keep one for gas if possible
         const firstCoin = balanceData.coins[0];
         const otherCoins = balanceData.coins.slice(1);
         
-        if (otherCoins.length > 0) {
-          // Merge all other coins into the first coin
-          // After merge, firstCoin will have total_balance
+        if (otherCoins.length > 1) {
+          // We have multiple coins to merge
+          // Keep the last coin separate for gas, merge the rest into the first
+          const lastCoin = otherCoins[otherCoins.length - 1];
+          const coinsToMerge = otherCoins.slice(0, -1);
+          
+          if (coinsToMerge.length > 0) {
+            // Merge middle coins into the first coin
+            tx.mergeCoins(
+              tx.object(firstCoin.object_id),
+              coinsToMerge.map((coin) => tx.object(coin.object_id))
+            );
+          }
+          
+          // After merge, firstCoin has (firstCoin.balance + sum of merged coins)
+          // We'll use firstCoin for staking, and lastCoin will be available for gas
+          coinToUse = firstCoin;
+        } else if (otherCoins.length === 1) {
+          // Only one other coin - merge it into the first
+          // After split, the remainder of firstCoin can potentially be used for gas
           tx.mergeCoins(
             tx.object(firstCoin.object_id),
-            otherCoins.map((coin) => tx.object(coin.object_id))
+            [tx.object(otherCoins[0].object_id)]
           );
+          coinToUse = firstCoin;
+        } else {
+          // No other coins (shouldn't happen, but handle it)
+          coinToUse = firstCoin;
         }
-        
-        // After merging, the first coin will have the total balance
-        // Since total_balance >= stakeAmount (we checked above), we can use it
-        coinToUse = firstCoin;
       }
       
-      // Reference to the coin we'll use (after potential merge)
-      const coinRef = tx.object(coinToUse.object_id);
-      
-      // If the coin has more than needed (or will have after merge), split it
-      // After merge, coinToUse will have total_balance, so we check that
+      // Calculate final balance (after merge if applicable)
       const finalBalance = coinToUse.balance >= stakeAmount 
         ? coinToUse.balance 
         : balanceData.total_balance;
       
-      if (finalBalance > stakeAmount) {
-        // Split the exact amount needed
+      // CRITICAL GAS FIX: When we have only 1 coin, the coin used for splitting CANNOT be used for gas
+      // Solution: Split into TWO coins: one for staking, one for gas
+      if (balanceData.coins.length === 1) {
+        // Only 1 coin - must split into stake + gas
+        const minGasAmount = 10_000_000; // 0.01 OCT for gas (be generous to avoid failures)
+        
+        if (finalBalance <= stakeAmount + minGasAmount) {
+          throw new Error(
+            `Insufficient balance. Need at least ${((stakeAmount + minGasAmount) / 1_000_000_000).toFixed(3)} OCT ` +
+            `(${(stakeAmount / 1_000_000_000).toFixed(3)} for stake + 0.01 for gas), ` +
+            `but only have ${(finalBalance / 1_000_000_000).toFixed(3)} OCT`
+          );
+        }
+        
+        // Split the single coin into: [stakeCoin, gasCoin]
+        const coinRef = tx.object(coinToUse.object_id);
+        const [splitForStake, gasForTransaction] = tx.splitCoins(coinRef, [stakeAmount, minGasAmount]);
+        stakeCoin = splitForStake;
+        
+        // The SDK will automatically use gasForTransaction for gas payment
+        // because it's created but not used as input to moveCall
+      } else if (finalBalance > stakeAmount) {
+        // Multiple coins - split normally, other coins used for gas
+        const coinRef = tx.object(coinToUse.object_id);
         const [splitCoin] = tx.splitCoins(coinRef, [stakeAmount]);
         stakeCoin = splitCoin;
+      } else if (finalBalance === stakeAmount) {
+        // Exact amount with multiple coins available - other coins used for gas
+        stakeCoin = tx.object(coinToUse.object_id);
       } else {
-        // Exact amount - use the coin directly
-        stakeCoin = coinRef;
+        throw new Error(`Insufficient balance. Expected: ${stakeAmount}, Got: ${finalBalance}`);
       }
 
       // Call create_battle function (same as test-battle)
@@ -190,98 +216,82 @@ export default function Home() {
         ],
       });
 
-      // Step 3: User signs and executes transaction
+      // Step 3: User signs transaction (but doesn't execute - backend will execute)
       // Wrap in try-catch to handle extension errors gracefully
       try {
-        signAndExecuteTransaction(
-          {
-            transaction: tx,
-            chain: 'sui:testnet',
-          },
-          {
-            onSuccess: async (result) => {
-              try {
-                console.log('Battle creation transaction successful:', {
-                  digest: result.digest,
-                  objectChanges: result.objectChanges?.length || 0,
-                });
-            
-                // Extract battle_id from object changes
-                const battleObject = result.objectChanges?.find(
-                  (change: any) => change.type === 'created' && change.objectType?.includes('battle::Battle')
-                );
-                
-                if (!battleObject || !('objectId' in battleObject)) {
-                  setError('Failed to find battle ID in transaction result');
-                  setBattleStatus('idle');
-                  setIsStarting(false);
-                  return;
-                }
+        const signedTx = await signTransactionAsync({
+          transaction: tx,
+          chain: 'sui:testnet',
+        });
 
-                const newBattleId = battleObject.objectId;
-                setBattleId(newBattleId);
-                setBattleStatus('waiting-join');
+        console.log('Transaction signed, sending to backend for execution');
+        
+        // Step 4: Send signed transaction to backend for execution
+        const createResponse = await fetch(`${API_BASE_URL}/api/battles/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transaction_bytes: signedTx.bytes,  // base64 transaction bytes
+            signature: signedTx.signature,  // base64 signature
+          }),
+        });
 
-                // Step 4: Computer joins battle (backend handles this)
-                try {
-                  const joinResponse = await fetch(`${API_BASE_URL}/api/battles/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      battle_id: newBattleId,
-                      player2_address: COMPUTER_ADDRESS,
-                      stake_amount: stakeAmount,
-                    }),
-                  });
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json();
+          throw new Error(errorData.detail || 'Failed to create battle');
+        }
 
-                  if (!joinResponse.ok) {
-                    const errorData = await joinResponse.json();
-                    throw new Error(errorData.detail || 'Computer failed to join battle');
-                  }
+        const createResult = await createResponse.json();
+        console.log('Battle creation successful:', createResult);
 
-                  // Battle is ready! Now start the selection animation and price battle
-                  setBattleStatus('ready');
-                  setIsStarting(false);
-                  await refreshBalance();
-
-                  // Fetch all coins for the selection animation
-                  const coins = await getTop30Coins();
-                  setAllCoins(coins);
-                  
-                  // Show selection animation
-                  setShowSelectionAnimation(true);
-                } catch (err: any) {
-                  console.error('Computer join error:', err);
-                  setError(err.message || 'Computer failed to join battle');
-                  setBattleStatus('idle');
-                  setBattleId(null);
-                  setIsStarting(false);
-                }
-              } catch (err: any) {
-                console.error('Battle creation success handler error:', err);
-                setError(err.message || 'Failed to process battle creation');
-                setBattleStatus('idle');
-                setIsStarting(false);
-              }
-            },
-            onError: (error: any) => {
-              console.error('Transaction failed:', error);
-              
-              // Filter out harmless extension connection errors
-              const errorMessage = error?.message || error?.toString() || 'Unknown error';
-              if (errorMessage.includes('Could not establish connection') || 
-                  errorMessage.includes('Receiving end does not exist')) {
-                // This is a harmless extension communication error, user can still sign
-                console.warn('Extension connection warning (harmless):', errorMessage);
-                return;
-              }
-              
-              setError(errorMessage);
-              setBattleStatus('idle');
-              setIsStarting(false);
-            },
+        // Report transaction effects to wallet (required by dApp Kit)
+        if (createResult.raw_effects && signedTx.reportTransactionEffects) {
+          try {
+            signedTx.reportTransactionEffects(createResult.raw_effects);
+          } catch (err) {
+            console.warn('Failed to report transaction effects to wallet:', err);
           }
-        );
+        }
+
+        const newBattleId = createResult.battle_id;
+        setBattleId(newBattleId);
+        setBattleStatus('waiting-join');
+
+        // Step 5: Computer joins battle (backend handles this)
+        try {
+          const joinResponse = await fetch(`${API_BASE_URL}/api/battles/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              battle_id: newBattleId,
+              player2_address: COMPUTER_ADDRESS,
+              stake_amount: stakeAmount,
+            }),
+          });
+
+          if (!joinResponse.ok) {
+            const errorData = await joinResponse.json();
+            throw new Error(errorData.detail || 'Computer failed to join battle');
+          }
+
+          // Battle is ready! Now start the selection animation and price battle
+          setBattleStatus('ready');
+          setIsStarting(false);
+          await refreshBalance();
+
+          // Fetch all coins for the selection animation
+          const coins = await getTop30Coins();
+          setAllCoins(coins);
+          
+          // Show selection animation
+          setShowSelectionAnimation(true);
+        } catch (err: any) {
+          console.error('Computer join error:', err);
+          setError(err.message || 'Computer failed to join battle');
+          setBattleStatus('idle');
+          setBattleId(null);
+          setIsStarting(false);
+        }
       } catch (txError: any) {
         // Handle transaction building errors
         console.error('Transaction building error:', txError);
@@ -440,7 +450,7 @@ export default function Home() {
               className="mt-4 inline-flex items-center space-x-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2"
             >
               <span className="text-xs text-gray-400">Available Balance:</span>
-              <span className="text-sm font-semibold text-neon-green tabular-nums">{battleTokenBalance.toFixed(2)} BTK</span>
+              <span className="text-sm font-semibold text-neon-green tabular-nums">{battleTokenBalance.toFixed(2)} OCT</span>
               <span className="text-xs text-gray-500">tokens</span>
             </motion.div>
           </motion.div>
@@ -494,8 +504,8 @@ export default function Home() {
                         className="mt-3 text-center"
                       >
                         <p className="text-xs text-gray-400">
-                          Win: <span className="text-neon-green font-medium">+{(wagerAmount * 2).toFixed(2)} BTK</span> • 
-                          Lose: <span className="text-red-400 font-medium">-{wagerAmount.toFixed(2)} BTK</span>
+                          Win: <span className="text-neon-green font-medium">+{(wagerAmount * 2).toFixed(2)} OCT</span> • 
+                          Lose: <span className="text-red-400 font-medium">-{wagerAmount.toFixed(2)} OCT</span>
                         </p>
                       </motion.div>
                     )}
@@ -544,7 +554,7 @@ export default function Home() {
                           </span>
                         </span>
                       ) : (
-                        `Start Battle (${wagerAmount.toFixed(2)} BTK)`
+                        `Start Battle (${wagerAmount.toFixed(2)} OCT)`
                       )}
                     </motion.button>
                   </div>

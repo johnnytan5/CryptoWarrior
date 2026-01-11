@@ -32,7 +32,7 @@ echo "Publishing Battle Arena package..."
 echo "This may take a moment..."
 echo ""
 
-PUBLISH_OUTPUT=$(one client publish --gas-budget 100000000 --json)
+PUBLISH_OUTPUT=$(one client publish --gas-budget 100000000 --skip-dependency-verification --json)
 
 # Extract package ID
 PACKAGE_ID=$(echo $PUBLISH_OUTPUT | jq -r '.objectChanges[] | select(.type == "published") | .packageId')
@@ -49,17 +49,14 @@ echo ""
 echo "Extracting deployment information..."
 echo ""
 
-# Get MintCap object ID
-MINT_CAP_ID=$(echo $PUBLISH_OUTPUT | jq -r '.objectChanges[] | select(.objectType | contains("MintCap")) | .objectId')
-echo "MintCap ID: $MINT_CAP_ID"
-
 # Get AdminCap object ID
-ADMIN_CAP_ID=$(echo $PUBLISH_OUTPUT | jq -r '.objectChanges[] | select(.objectType | contains("AdminCap")) | .objectId')
-echo "AdminCap ID: $ADMIN_CAP_ID"
-
-# Get TreasuryCap metadata
-METADATA_ID=$(echo $PUBLISH_OUTPUT | jq -r '.objectChanges[] | select(.objectType | contains("CoinMetadata")) | .objectId')
-echo "Token Metadata ID: $METADATA_ID"
+ADMIN_CAP_ID=$(echo $PUBLISH_OUTPUT | jq -r '.objectChanges[] | select(.type == "created" and (.objectType // "" | contains("AdminCap"))) | .objectId // empty' | head -1)
+if [ -z "$ADMIN_CAP_ID" ] || [ "$ADMIN_CAP_ID" = "null" ]; then
+    echo "Warning: AdminCap ID not found in deployment output"
+    ADMIN_CAP_ID=""
+else
+    echo "AdminCap ID: $ADMIN_CAP_ID"
+fi
 
 echo ""
 echo "========================================"
@@ -67,24 +64,24 @@ echo "Save these values for future operations:"
 echo "========================================"
 echo ""
 echo "export PACKAGE_ID=$PACKAGE_ID"
-echo "export MINT_CAP_ID=$MINT_CAP_ID"
-echo "export ADMIN_CAP_ID=$ADMIN_CAP_ID"
-echo "export METADATA_ID=$METADATA_ID"
+if [ -n "$ADMIN_CAP_ID" ]; then
+    echo "export ADMIN_CAP_ID=$ADMIN_CAP_ID"
+fi
 echo "export DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS"
 echo ""
 
 # Save to .env file
 echo "PACKAGE_ID=$PACKAGE_ID" > .env
-echo "MINT_CAP_ID=$MINT_CAP_ID" >> .env
-echo "ADMIN_CAP_ID=$ADMIN_CAP_ID" >> .env
-echo "METADATA_ID=$METADATA_ID" >> .env
+if [ -n "$ADMIN_CAP_ID" ]; then
+    echo "ADMIN_CAP_ID=$ADMIN_CAP_ID" >> .env
+fi
 echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" >> .env
 
 echo "Environment variables saved to .env file"
 echo ""
 echo "Next steps:"
 echo "1. Source the environment: source .env"
-echo "2. Mint tokens: ./scripts/mint_tokens.sh <ADDRESS> <AMOUNT>"
+echo "2. Users need OCT tokens from faucet to participate in battles"
 echo "3. Create battle: Use your frontend or scripts/create_battle.sh"
 echo ""
 

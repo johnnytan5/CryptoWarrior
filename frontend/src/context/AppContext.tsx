@@ -45,11 +45,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingBalance(true);
     try {
       const balanceData = await getUserBalance(currentAccount.address);
-      // Convert raw units to human-readable BTK (9 decimals)
+      // Convert raw units to human-readable OCT (9 decimals)
       const humanReadableBalance = balanceData.total_balance / 1_000_000_000;
       setBattleTokenBalance(humanReadableBalance);
       setUserCoins(balanceData.coins);
-      console.log('Balance updated:', humanReadableBalance.toFixed(2), 'BTK');
+      console.log('Balance updated:', humanReadableBalance.toFixed(2), 'OCT');
     } catch (error) {
       console.error('Failed to fetch balance:', error);
       // If backend is not available, set to 0 instead of showing error

@@ -1,7 +1,8 @@
 """Configuration settings for the FastAPI backend."""
 
 from pydantic_settings import BaseSettings
-from typing import List
+from pydantic import ConfigDict
+from typing import List, Optional
 
 
 class Settings(BaseSettings):
@@ -13,7 +14,6 @@ class Settings(BaseSettings):
     
     # Smart Contract Addresses
     package_id: str
-    mint_cap_id: str
     admin_cap_id: str
     
     # Admin Wallet
@@ -27,15 +27,18 @@ class Settings(BaseSettings):
     
     # CORS
     cors_origins: str = "http://localhost:3000"
+    cors_origin_regex: Optional[str] = None
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"  # Allow extra fields from .env that aren't defined in the model
+    )
     
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins into a list."""
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 # Global settings instance

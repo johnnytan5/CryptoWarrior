@@ -18,7 +18,6 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Battle' },
-    { href: '/mint', label: 'Mint' },
     { href: '/profile', label: 'Profile' },
   ];
 
@@ -110,12 +109,12 @@ export default function Navbar() {
               >
                 <div className="w-2 h-2 bg-neon-cyan rounded-full"></div>
                 <div className="text-xs">
-                  <div className="text-gray-400 text-[10px] tracking-wide">Battle Tokens</div>
+                  <div className="text-gray-400 text-[10px] tracking-wide">OCT Balance</div>
                   <div className="text-neon-cyan font-semibold font-mono">
                     {isLoadingBalance ? (
                       <span className="animate-pulse">Loading...</span>
                     ) : (
-                      `${battleTokenBalance.toFixed(2)} BTK`
+                      `${battleTokenBalance.toFixed(2)} OCT`
                     )}
                   </div>
                 </div>

@@ -132,18 +132,18 @@ export default function WinnerAnnouncement({
               <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-gray-400">Wagered</span>
-                  <span className="text-sm text-gray-300 tabular-nums">{wagerAmount.toFixed(2)} BTK</span>
+                  <span className="text-sm text-gray-300 tabular-nums">{wagerAmount.toFixed(2)} OCT</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">Winnings</span>
-                  <span className="text-sm text-neon-green font-semibold tabular-nums">+{tokensAwarded.toFixed(2)} BTK</span>
+                  <span className="text-sm text-neon-green font-semibold tabular-nums">+{tokensAwarded.toFixed(2)} OCT</span>
                 </div>
               </div>
 
               {/* Total Won */}
               <div className="inline-flex items-center space-x-2 bg-neon-green/10 border border-neon-green/30 rounded-lg px-6 py-3 mb-2">
                 <span className="text-sm text-gray-400">Total Won</span>
-                <span className="text-2xl font-semibold text-neon-green tabular-nums">+{tokensAwarded.toFixed(2)} BTK</span>
+                <span className="text-2xl font-semibold text-neon-green tabular-nums">+{tokensAwarded.toFixed(2)} OCT</span>
               </div>
             </>
           ) : (
@@ -204,14 +204,14 @@ export default function WinnerAnnouncement({
               <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">Wagered</span>
-                  <span className="text-sm text-gray-300 tabular-nums">{wagerAmount.toFixed(2)} BTK</span>
+                  <span className="text-sm text-gray-300 tabular-nums">{wagerAmount.toFixed(2)} OCT</span>
                 </div>
               </div>
 
               {/* Total Lost */}
               <div className="inline-flex items-center space-x-2 bg-red-500/10 border border-red-500/30 rounded-lg px-6 py-3 mb-4">
                 <span className="text-sm text-gray-400">Total Lost</span>
-                <span className="text-2xl font-semibold text-red-400 tabular-nums">-{wagerAmount.toFixed(2)} BTK</span>
+                <span className="text-2xl font-semibold text-red-400 tabular-nums">-{wagerAmount.toFixed(2)} OCT</span>
               </div>
               
               <p className="text-xs text-gray-400 mt-4">

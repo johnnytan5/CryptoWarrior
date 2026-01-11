@@ -3,7 +3,8 @@ module battle_arena::battle_tests;
 
 use one::test_scenario::{Self as ts, Scenario};
 use one::coin::{Self, Coin};
-use battle_arena::battle_token::{Self, BATTLE_TOKEN, MintCap};
+use one::oct::OCT;
+use one::transfer;
 use battle_arena::battle::{Self, Battle, AdminCap};
 
 const ADMIN: address = @0xAD;
@@ -14,19 +15,26 @@ const CHARLIE: address = @0xC;
 fun setup_test(): Scenario {
     let mut scenario = ts::begin(ADMIN);
     
-    // Initialize modules
+    // Initialize battle module
     {
-        battle_token::init_for_testing(scenario.ctx());
         battle::init_for_testing(scenario.ctx());
     };
     
-    // Mint tokens to players
-    scenario.next_tx(ADMIN);
+    // Mint OCT tokens to players for testing
+    // Mint to ALICE
+    scenario.next_tx(ALICE);
     {
-        let mut mint_cap = scenario.take_from_sender<MintCap>();
-        battle_token::mint(&mut mint_cap, 2000, ALICE, scenario.ctx());
-        battle_token::mint(&mut mint_cap, 2000, BOB, scenario.ctx());
-        ts::return_to_sender(&scenario, mint_cap);
+        let alice_coins = coin::mint_for_testing<OCT>(2000, scenario.ctx());
+        // Transfer coins to ALICE (the sender)
+        transfer::public_transfer(alice_coins, ALICE);
+    };
+    
+    // Mint to BOB
+    scenario.next_tx(BOB);
+    {
+        let bob_coins = coin::mint_for_testing<OCT>(2000, scenario.ctx());
+        // Transfer coins to BOB (the sender)
+        transfer::public_transfer(bob_coins, BOB);
     };
     
     scenario
@@ -39,7 +47,7 @@ fun test_create_battle_success() {
     // Alice creates a battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
@@ -71,7 +79,7 @@ fun test_join_battle_success() {
     // Alice creates battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -81,7 +89,7 @@ fun test_join_battle_success() {
     scenario.next_tx(BOB);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         
         battle::join_battle(&mut battle, stake, scenario.ctx());
@@ -103,7 +111,7 @@ fun test_finalize_battle_alice_wins() {
     // Create and join battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -112,7 +120,7 @@ fun test_finalize_battle_alice_wins() {
     scenario.next_tx(BOB);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::join_battle(&mut battle, stake, scenario.ctx());
         ts::return_shared(battle);
@@ -133,7 +141,7 @@ fun test_finalize_battle_alice_wins() {
     // Verify Alice received all tokens
     scenario.next_tx(ALICE);
     {
-        let mut alice_coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut alice_coins = scenario.take_from_sender<Coin<OCT>>();
         // Alice should have: 2000 (initial) - 500 (staked) + 1000 (won) = 2500
         // But we need to collect all her coins
         let value = coin::value(&alice_coins);
@@ -152,7 +160,7 @@ fun test_finalize_battle_bob_wins() {
     // Create and join battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -161,7 +169,7 @@ fun test_finalize_battle_bob_wins() {
     scenario.next_tx(BOB);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::join_battle(&mut battle, stake, scenario.ctx());
         ts::return_shared(battle);
@@ -182,7 +190,7 @@ fun test_finalize_battle_bob_wins() {
     // Verify Bob received all tokens
     scenario.next_tx(BOB);
     {
-        let bob_coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let bob_coins = scenario.take_from_sender<Coin<OCT>>();
         let value = coin::value(&bob_coins);
         assert!(value >= 1000, 0); // At least the prize
         ts::return_to_sender(&scenario, bob_coins);
@@ -198,7 +206,7 @@ fun test_cancel_battle_success() {
     // Alice creates battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -216,13 +224,13 @@ fun test_cancel_battle_success() {
     {
         // Alice will have 2 coin objects: the original (1500) and refund (500)
         // Take all and verify total
-        let ids = ts::ids_for_sender<Coin<BATTLE_TOKEN>>(&scenario);
+        let ids = ts::ids_for_sender<Coin<OCT>>(&scenario);
         let mut total_value = 0;
         let mut i = 0;
         let len = vector::length(&ids);
         
         while (i < len) {
-            let coin = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+            let coin = scenario.take_from_sender<Coin<OCT>>();
             total_value = total_value + coin::value(&coin);
             ts::return_to_sender(&scenario, coin);
             i = i + 1;
@@ -242,7 +250,7 @@ fun test_cannot_battle_yourself() {
     
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         
         // Alice tries to battle herself - should fail
@@ -262,7 +270,7 @@ fun test_join_with_wrong_amount_fails() {
     // Alice creates battle with 500 stake
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -272,7 +280,7 @@ fun test_join_with_wrong_amount_fails() {
     scenario.next_tx(BOB);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 300, scenario.ctx()); // Wrong amount!
         
         battle::join_battle(&mut battle, stake, scenario.ctx());
@@ -289,18 +297,18 @@ fun test_join_with_wrong_amount_fails() {
 fun test_wrong_player_cannot_join() {
     let mut scenario = setup_test();
     
-    // Mint tokens to Charlie
-    scenario.next_tx(ADMIN);
+    // Mint OCT tokens to Charlie
+    scenario.next_tx(CHARLIE);
     {
-        let mut mint_cap = scenario.take_from_sender<MintCap>();
-        battle_token::mint(&mut mint_cap, 2000, CHARLIE, scenario.ctx());
-        ts::return_to_sender(&scenario, mint_cap);
+        let charlie_coins = coin::mint_for_testing<OCT>(2000, scenario.ctx());
+        // Transfer coins to CHARLIE (the sender)
+        transfer::public_transfer(charlie_coins, CHARLIE);
     };
     
     // Alice creates battle for Bob
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -310,7 +318,7 @@ fun test_wrong_player_cannot_join() {
     scenario.next_tx(CHARLIE);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         
         battle::join_battle(&mut battle, stake, scenario.ctx());
@@ -330,7 +338,7 @@ fun test_finalize_before_both_players_fails() {
     // Alice creates battle but Bob doesn't join
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -358,7 +366,7 @@ fun test_finalize_with_invalid_winner_fails() {
     // Create and join battle
     scenario.next_tx(ALICE);
     {
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::create_battle(stake, BOB, ADMIN, scenario.ctx());
         ts::return_to_sender(&scenario, coins);
@@ -367,7 +375,7 @@ fun test_finalize_with_invalid_winner_fails() {
     scenario.next_tx(BOB);
     {
         let mut battle = scenario.take_shared<Battle>();
-        let mut coins = scenario.take_from_sender<Coin<BATTLE_TOKEN>>();
+        let mut coins = scenario.take_from_sender<Coin<OCT>>();
         let stake = coin::split(&mut coins, 500, scenario.ctx());
         battle::join_battle(&mut battle, stake, scenario.ctx());
         ts::return_shared(battle);

@@ -121,16 +121,6 @@ export const finalizeBattle = async (battleData: BattleData): Promise<{
   return { winner, tokensAwarded };
 };
 
-export const mintTokens = async (): Promise<{
-  newBalance: number;
-  minted: number;
-}> => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return {
-    newBalance: 120, // Mock value
-    minted: 10,
-  };
-};
 
 export const getProfile = async (walletAddress: string): Promise<Profile> => {
   await new Promise(resolve => setTimeout(resolve, 500));

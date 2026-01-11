@@ -41,7 +41,7 @@ export interface FinalizeBattleResponse {
 }
 
 /**
- * Get user's battle token balance and coin objects
+ * Get user's OCT (native OneChain token) balance and coin objects
  */
 export async function getUserBalance(address: string): Promise<UserBalance> {
   const response = await fetch(`${API_BASE_URL}/api/users/${address}/balance`);
@@ -53,43 +53,26 @@ export async function getUserBalance(address: string): Promise<UserBalance> {
   return await response.json();
 }
 
-/**
- * Mint battle tokens to a user
- */
-export async function mintTokens(address: string, amount: number) {
-  const response = await fetch(`${API_BASE_URL}/api/tokens/mint`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, amount })
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to mint tokens: ${response.statusText}`);
-  }
-  
-  return await response.json();
-}
 
 /**
- * Create a new battle
+ * Create a new battle by executing a signed transaction
  */
 export async function createBattle(
-  player1Address: string,
-  stakeAmount: number,
-  coinObjectId: string
+  transactionBytes: string,
+  signature: string
 ): Promise<CreateBattleResponse> {
   const response = await fetch(`${API_BASE_URL}/api/battles/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      player1_address: player1Address,
-      stake_amount: stakeAmount,
-      coin_object_id: coinObjectId
+      transaction_bytes: transactionBytes,
+      signature: signature
     })
   });
   
   if (!response.ok) {
-    throw new Error(`Failed to create battle: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to create battle: ${response.statusText}`);
   }
   
   return await response.json();

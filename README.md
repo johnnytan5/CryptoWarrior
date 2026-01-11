@@ -8,7 +8,7 @@ Crypto Warrior is a Web3 gaming platform that combines cryptocurrency trading kn
 
 ### Key Features
 
-- 🪙 **Battle Token System**: Custom Sui-backed coin (BTK) on OneChain
+- 🪙 **Battle Token System**: Custom BTK on OneChain
 - ⚔️ **Real-time Battles**: Compete in cryptocurrency price prediction battles
 - 📊 **Live Price Data**: Real-time price feeds from Binance and CoinGecko APIs
 - 💰 **Staking & Rewards**: Stake BTK tokens, winner takes all
@@ -45,9 +45,6 @@ Crypto Warrior is a Web3 gaming platform that combines cryptocurrency trading kn
 ### Infrastructure
 - **Frontend Hosting**: Vercel
 - **Backend Hosting**: AWS EC2
-- **Reverse Proxy**: Nginx (optional, for HTTPS)
-- **Tunneling**: ngrok (for HTTPS backend access)
-- **Monitoring**: Vercel Cron Jobs (health checks)
 
 ## 🚀 User Guide
 
@@ -99,7 +96,7 @@ Crypto Warrior is a Web3 gaming platform that combines cryptocurrency trading kn
    - Wait for an opponent or battle against the bot
 
 4. **Battle Mechanics**
-   - Each battle lasts for a set duration (e.g., 5 minutes)
+   - Each battle lasts for a set duration (1 minute)
    - Real-time price tracking for both warriors
    - The coin with better price performance wins
    - Winner takes all staked BTK tokens
@@ -108,6 +105,30 @@ Crypto Warrior is a Web3 gaming platform that combines cryptocurrency trading kn
    - After the battle ends, see the winner announcement
    - Check your updated BTK balance
    - View battle history in your profile
+
+## 🎯 Potential Improvements
+
+### Short-term
+- ✅ **Sponsored Transaction Gas**: Implement gasless transactions using sponsored transactions on OneChain, allowing users to play without holding OCT tokens
+- ✅ **Multiplayer Battles**: Add support for multiple players (3+ way battles) with tournament-style brackets
+- ✅ **NFT Minting**: Create NFT warriors that players can mint, collect, and use in battles with special abilities or bonuses
+- ✅ **Leaderboards**: Global and seasonal leaderboards with rankings and rewards
+- ✅ **Battle History**: Detailed battle history with replays and statistics
+
+### Medium-term
+- **Tournament Mode**: Organize scheduled tournaments with entry fees and prize pools
+- **Achievement System**: Unlock achievements and badges for milestones
+- **Referral Program**: Reward users for inviting friends
+- **Mobile App**: React Native mobile application
+- **Advanced Analytics**: Price prediction analytics, win rate statistics, coin performance data
+
+### Long-term
+- **Cross-chain Integration**: Support for multiple blockchains (Sui, Aptos, etc.)
+- **DAO Governance**: Decentralized governance for game parameters and updates
+- **Staking Rewards**: Earn passive income by staking BTK tokens
+- **Marketplace**: Trade NFT warriors and battle items
+- **AI Opponents**: Advanced AI opponents with different difficulty levels
+
 
 ## 📁 Project Structure
 
@@ -156,69 +177,6 @@ uvicorn main:app --reload
 ```
 
 The backend will run on `http://localhost:8000`
-
-### Environment Variables
-
-**Frontend (.env.local):**
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_PACKAGE_ID=0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8
-NEXT_PUBLIC_DEPLOYER_ADDRESS=0xf243e79908bd2a90e54a4121a5f65f225b894316f19a73c68620ebe190c855e9
-```
-
-**Backend (.env):**
-```
-PACKAGE_ID=0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8
-MINT_CAP_ID=your_mint_cap_id
-ADMIN_CAP_ID=your_admin_cap_id
-ADMIN_PRIVATE_KEY=your_private_key
-DEPLOYER_ADDRESS=0xf243e79908bd2a90e54a4121a5f65f225b894316f19a73c68620ebe190c855e9
-ONECHAIN_RPC_URL=https://rpc-testnet.onelabs.cc:443
-```
-
-## 🚀 Deployment
-
-### Frontend (Vercel)
-
-1. Push code to GitHub
-2. Connect repository to Vercel
-3. Set root directory to `frontend`
-4. Add environment variables
-5. Deploy automatically
-
-### Backend (AWS EC2)
-
-See `backend/EC2_DEPLOYMENT.md` for detailed instructions.
-
-Quick setup:
-1. Launch EC2 instance (Ubuntu)
-2. Install dependencies (Python, OneChain CLI)
-3. Clone repository
-4. Set up systemd service
-5. Configure Nginx (optional, for HTTPS)
-
-## 🎯 Potential Improvements
-
-### Short-term
-- ✅ **Sponsored Transaction Gas**: Implement gasless transactions using sponsored transactions on OneChain, allowing users to play without holding OCT tokens
-- ✅ **Multiplayer Battles**: Add support for multiple players (3+ way battles) with tournament-style brackets
-- ✅ **NFT Minting**: Create NFT warriors that players can mint, collect, and use in battles with special abilities or bonuses
-- ✅ **Leaderboards**: Global and seasonal leaderboards with rankings and rewards
-- ✅ **Battle History**: Detailed battle history with replays and statistics
-
-### Medium-term
-- **Tournament Mode**: Organize scheduled tournaments with entry fees and prize pools
-- **Achievement System**: Unlock achievements and badges for milestones
-- **Referral Program**: Reward users for inviting friends
-- **Mobile App**: React Native mobile application
-- **Advanced Analytics**: Price prediction analytics, win rate statistics, coin performance data
-
-### Long-term
-- **Cross-chain Integration**: Support for multiple blockchains (Sui, Aptos, etc.)
-- **DAO Governance**: Decentralized governance for game parameters and updates
-- **Staking Rewards**: Earn passive income by staking BTK tokens
-- **Marketplace**: Trade NFT warriors and battle items
-- **AI Opponents**: Advanced AI opponents with different difficulty levels
 
 ## 🔒 Security
 

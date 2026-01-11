@@ -4,7 +4,7 @@ module battle_arena::battle;
 
 use one::coin::{Self, Coin};
 use one::event;
-use battle_arena::battle_token::BATTLE_TOKEN;
+use one::oct::OCT;
 
 /// Battle state - holds staked tokens from both players
 public struct Battle has key, store {
@@ -14,9 +14,9 @@ public struct Battle has key, store {
     /// Player 2 who will join the battle
     player2: address,
     /// Staked tokens from player 1
-    player1_stake: Coin<BATTLE_TOKEN>,
+    player1_stake: Coin<OCT>,
     /// Staked tokens from player 2 (initially empty)
-    player2_stake: Option<Coin<BATTLE_TOKEN>>,
+    player2_stake: Option<Coin<OCT>>,
     /// Amount each player must stake
     stake_amount: u64,
     /// Whether battle is ready (both players staked)
@@ -95,7 +95,7 @@ fun init(ctx: &mut TxContext) {
 /// Create a new battle and stake tokens
 /// Player 1 creates the battle and specifies opponent and stake amount
 public fun create_battle(
-    stake: Coin<BATTLE_TOKEN>,
+    stake: Coin<OCT>,
     opponent: address,
     admin: address,
     ctx: &mut TxContext
@@ -136,7 +136,7 @@ public fun create_battle(
 /// Player 2 joins the battle by staking the same amount
 public fun join_battle(
     battle: &mut Battle,
-    stake: Coin<BATTLE_TOKEN>,
+    stake: Coin<OCT>,
     ctx: &TxContext
 ) {
     let sender = ctx.sender();

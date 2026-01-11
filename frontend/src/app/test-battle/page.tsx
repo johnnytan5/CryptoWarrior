@@ -69,7 +69,7 @@ export default function TestBattlePage() {
     }
 
     if (betAmountNum > battleTokenBalance) {
-      setError(`Insufficient balance. You have ${battleTokenBalance.toFixed(2)} BTK`);
+      setError(`Insufficient balance. You have ${battleTokenBalance.toFixed(2)} OCT`);
       return;
     }
 
@@ -83,7 +83,7 @@ export default function TestBattlePage() {
     });
 
     try {
-      // Convert BTK to raw units (9 decimals)
+      // Convert OCT to raw units (9 decimals)
       const stakeAmount = Math.floor(betAmountNum * 1_000_000_000);
 
       // Step 1: Get user's coin objects
@@ -95,11 +95,11 @@ export default function TestBattlePage() {
       
       // Check total balance
       if (balanceData.total_balance < stakeAmount) {
-        throw new Error(`Insufficient balance. Required: ${betAmountNum} BTK, Available: ${balanceData.total_balance / 1_000_000_000} BTK`);
+        throw new Error(`Insufficient balance. Required: ${betAmountNum} OCT, Available: ${balanceData.total_balance / 1_000_000_000} OCT`);
       }
       
       if (balanceData.coins.length === 0) {
-        throw new Error('No coins found. Please mint some battle tokens first.');
+        throw new Error('No OCT coins found. Please obtain OCT from the faucet first.');
       }
       
       // Step 2: Build transaction for creating battle
@@ -328,7 +328,7 @@ export default function TestBattlePage() {
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Your Balance:</span>
             <span className="text-2xl font-bold text-neon-cyan">
-              {battleTokenBalance.toFixed(2)} BTK
+              {battleTokenBalance.toFixed(2)} OCT
             </span>
           </div>
         </motion.div>
@@ -343,7 +343,7 @@ export default function TestBattlePage() {
             <h2 className="text-2xl font-bold text-neon-purple mb-6">Start Battle</h2>
 
             <div className="mb-6">
-              <label className="block text-gray-400 mb-2">Bet Amount (BTK)</label>
+              <label className="block text-gray-400 mb-2">Bet Amount (OCT)</label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -412,19 +412,19 @@ export default function TestBattlePage() {
               <div className="flex justify-between mb-4">
                 <div className="text-center flex-1">
                   <p className="text-gray-400 text-sm mb-1">You</p>
-                  <p className="text-2xl font-bold text-neon-cyan">{battle.userStake.toFixed(2)} BTK</p>
+                  <p className="text-2xl font-bold text-neon-cyan">{battle.userStake.toFixed(2)} OCT</p>
                 </div>
                 <div className="flex items-center px-4">
                   <span className="text-gray-500 text-2xl">VS</span>
                 </div>
                 <div className="text-center flex-1">
                   <p className="text-gray-400 text-sm mb-1">Computer</p>
-                  <p className="text-2xl font-bold text-neon-purple">{battle.userStake.toFixed(2)} BTK</p>
+                  <p className="text-2xl font-bold text-neon-purple">{battle.userStake.toFixed(2)} OCT</p>
                 </div>
               </div>
               <div className="text-center pt-4 border-t border-gray-700">
                 <span className="text-gray-400">Total Pool: </span>
-                <span className="text-xl font-bold text-white">{(battle.userStake * 2).toFixed(2)} BTK</span>
+                <span className="text-xl font-bold text-white">{(battle.userStake * 2).toFixed(2)} OCT</span>
               </div>
             </div>
 
@@ -482,7 +482,7 @@ export default function TestBattlePage() {
               <div className="text-center pt-4 border-t border-gray-700">
                 <p className="text-gray-400 mb-2">Prize:</p>
                 <p className="text-3xl font-bold text-white">
-                  {(battle.userStake * 2).toFixed(2)} BTK
+                  {(battle.userStake * 2).toFixed(2)} OCT
                 </p>
               </div>
               <div className="text-center pt-4 border-t border-gray-700 mt-4">
@@ -492,7 +492,7 @@ export default function TestBattlePage() {
                 <p className={`text-2xl font-bold ${
                   winner === 'user' ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {winner === 'user' ? '+' : '-'}{battle.userStake.toFixed(2)} BTK
+                  {winner === 'user' ? '+' : '-'}{battle.userStake.toFixed(2)} OCT
                 </p>
               </div>
             </div>

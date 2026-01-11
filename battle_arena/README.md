@@ -4,14 +4,13 @@ A decentralized battle system on OneChain where players can stake Battle Tokens 
 
 ## 📋 Overview
 
-Battle Arena consists of two main smart contracts:
+Battle Arena is a smart contract system on OneChain where players can stake OCT (native OneChain token) and compete in 1v1 battles.
 
-1. **Battle Token (BTK)** - Custom fungible token for the battle system
-2. **Battle System** - Manages player battles, staking, and prize distribution
+**Battle System** - Manages player battles, staking, and prize distribution using OCT tokens.
 
 ## ✨ Features
 
-- ✅ **Token Minting**: Admin can mint Battle Tokens to any address
+- ✅ **OCT Staking**: Players stake OCT (native OneChain token) to participate
 - ✅ **Battle Creation**: Players can create battles and stake tokens
 - ✅ **Fair Staking**: Both players must stake equal amounts
 - ✅ **Admin-Controlled Finalization**: Only admin can declare winners via API endpoint
@@ -22,19 +21,6 @@ Battle Arena consists of two main smart contracts:
   - Allows cancellation before opponent joins
 
 ## 🏗️ Architecture
-
-### Battle Token Module (`battle_token.move`)
-
-```move
-// Key Functions:
-- init(): Initialize the token with MintCap
-- mint(): Mint tokens to recipient (admin only)
-- burn(): Burn tokens
-- total_supply(): View total token supply
-```
-
-**Capabilities:**
-- `MintCap`: Required to mint tokens, owned by admin
 
 ### Battle Module (`battle.move`)
 
@@ -85,32 +71,20 @@ cd battle_arena
 
 # This will output:
 # - Package ID
-# - MintCap ID (for minting tokens)
+# Note: Uses OCT (native OneChain token), no custom token needed
 # - AdminCap ID (for finalizing battles)
 # - All values saved to .env file
 ```
 
 ## 📖 Usage
 
-### 1. Mint Tokens to Players
+### 1. Get OCT Tokens
 
 ```bash
-# Mint 1000 tokens to Alice
-./scripts/mint_tokens.sh 0xAliceAddress 1000
-
-# Mint 1000 tokens to Bob
-./scripts/mint_tokens.sh 0xBobAddress 1000
+# Note: OCT tokens cannot be minted. Users must obtain OCT from faucets.
 ```
 
-**Via CLI:**
-```bash
-one client call \
-    --package $PACKAGE_ID \
-    --module battle_token \
-    --function mint \
-    --args $MINT_CAP_ID 1000 0xRecipientAddress \
-    --gas-budget 10000000
-```
+**Note:** This project uses OCT (native OneChain token) instead of a custom token. Users must obtain OCT from faucets or transfers.
 
 ### 2. Create a Battle (Player 1)
 
@@ -253,7 +227,7 @@ one move test -v
 ## 🔐 Security Features
 
 1. **Access Control**
-   - Only MintCap holder can mint tokens
+   - Uses OCT (native OneChain token) - users obtain from faucets
    - Only AdminCap holder can finalize battles
    - Only designated player 2 can join battles
 
@@ -273,9 +247,6 @@ one move test -v
 The contracts emit events for tracking:
 
 ```move
-// Battle Token Events
-- None (uses standard coin events)
-
 // Battle Events
 - BattleCreated { battle_id, player1, player2, stake_amount }
 - BattleJoined { battle_id, player2 }
@@ -325,14 +296,11 @@ const unsubscribe = await client.subscribeEvent({
 battle_arena/
 ├── Move.toml                 # Package manifest
 ├── sources/
-│   ├── battle_token.move     # Token module
-│   └── battle.move           # Battle logic
+│   └── battle.move           # Battle logic (uses OCT)
 ├── tests/
-│   ├── battle_token_tests.move
 │   └── battle_tests.move
 ├── scripts/
 │   ├── deploy.sh             # Deployment script
-│   ├── mint_tokens.sh        # Token minting helper
 │   └── finalize_battle.sh    # Battle finalization helper
 └── README.md                 # This file
 ```
@@ -362,7 +330,7 @@ one move fmt
 | Operation | Estimated Gas (OCT) |
 |-----------|---------------------|
 | Deploy Package | ~0.1 OCT |
-| Mint Tokens | ~0.001 OCT |
+| N/A (uses OCT) | N/A |
 | Create Battle | ~0.002 OCT |
 | Join Battle | ~0.002 OCT |
 | Finalize Battle | ~0.002 OCT |

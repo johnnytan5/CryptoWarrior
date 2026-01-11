@@ -34,7 +34,6 @@ nano .env
 **Required Configuration:**
 ```env
 PACKAGE_ID=0xe80cbff7a5b3535c486399f3ec52b94952515626e3a784525269eeee8f3e35c8
-MINT_CAP_ID=0xc05a9c3e1e75f677a17a5a1a6c1b3bde40063bb5f2749a8cac5cb6daef4c9d61
 ADMIN_CAP_ID=0xe99a9f9caa9905b6a657697b3f1df41b3dd25f59088fa518b99214cf46f17de8
 ADMIN_PRIVATE_KEY=your_base64_encoded_private_key
 ```
@@ -93,26 +92,6 @@ Response:
   "status": "healthy",
   "network": "testnet",
   "package_id": "0x..."
-}
-```
-
-### Mint Tokens
-```bash
-POST /api/tokens/mint
-Content-Type: application/json
-
-{
-  "address": "0x123...",
-  "amount": 1000
-}
-
-Response:
-{
-  "success": true,
-  "recipient": "0x123...",
-  "amount": 1000,
-  "message": "Tokens minted successfully",
-  "transaction_digest": "..."
 }
 ```
 
@@ -222,14 +201,6 @@ Response:
 # Health check
 curl http://localhost:8000/health
 
-# Mint tokens
-curl -X POST http://localhost:8000/api/tokens/mint \
-  -H "Content-Type: application/json" \
-  -d '{
-    "address": "0xf243e79908bd2a90e54a4121a5f65f225b894316f19a73c68620ebe190c855e9",
-    "amount": 1000
-  }'
-
 # Get battle details
 curl http://localhost:8000/api/battles/0xBATTLE_ID
 
@@ -240,11 +211,6 @@ curl http://localhost:8000/api/users/0xADDRESS/balance
 ### Using HTTPie
 
 ```bash
-# Mint tokens
-http POST localhost:8000/api/tokens/mint \
-  address="0x123..." \
-  amount:=1000
-
 # Finalize battle
 http POST localhost:8000/api/battles/finalize \
   battle_id="0x456..." \
@@ -282,15 +248,12 @@ backend/
 ### Example: Next.js API Route
 
 ```typescript
-// pages/api/mint-tokens.ts
+// pages/api/get-balance.ts
 export default async function handler(req, res) {
-  const response = await fetch('http://localhost:8000/api/tokens/mint', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      address: req.body.address,
-      amount: 1000
-    })
+  const address = req.query.address;
+  const response = await fetch(`http://localhost:8000/api/users/${address}/balance`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
   });
   
   const data = await response.json();
@@ -301,16 +264,6 @@ export default async function handler(req, res) {
 ### Example: Direct Fetch
 
 ```typescript
-// Mint tokens when user connects wallet
-async function mintInitialTokens(address: string) {
-  const response = await fetch('http://localhost:8000/api/tokens/mint', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, amount: 1000 })
-  });
-  return await response.json();
-}
-
 // Finalize battle when game ends
 async function finalizeBattle(battleId: string, winner: string) {
   const response = await fetch('http://localhost:8000/api/battles/finalize', {
@@ -409,7 +362,6 @@ ONECHAIN_RPC_URL=https://rpc-testnet.onelabs.cc:443
 
 # Smart Contract Addresses
 PACKAGE_ID=0x...
-MINT_CAP_ID=0x...
 ADMIN_CAP_ID=0x...
 
 # Admin Wallet
